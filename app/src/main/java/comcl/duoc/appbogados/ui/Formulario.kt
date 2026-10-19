@@ -18,7 +18,10 @@ import comcl.duoc.appbogados.viewmodel.FormularioViewModel
 
 
 @Composable
-fun Formulario(viewModel: FormularioViewModel) {
+fun Formulario(
+    viewModel: FormularioViewModel,
+    onIngresoExitoso: (nombre: String, correo: String) -> Unit
+) {
 
     var abrirModal by remember { mutableStateOf(false) }
 
@@ -55,14 +58,23 @@ fun Formulario(viewModel: FormularioViewModel) {
 
         if (abrirModal) {
             AlertDialog(
-                onDismissRequest = { },
-                title = { Text("Confirmación") },
-                text = { Text("Formulario enviado correctamente") },
+                onDismissRequest = { /* ... */ },
+                title = { Text("Ingreso exitoso") },
+                text = { Text("Bienvenido...") },
                 confirmButton = {
-                    Button(onClick = { abrirModal = false }) { Text("OK") }
+                    Button(
+                        onClick = {
+                            // Extrae el nombre y correo de tu viewModel y envíalos al callback:
+                            onIngresoExitoso(
+                                viewModel.formulario.nombre, // Ajusta al nombre real de tus variables en FormularioViewModel
+                                viewModel.formulario.correo
+                            )
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
                 }
             )
         }
-
     }
 }

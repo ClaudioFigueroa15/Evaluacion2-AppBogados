@@ -3,7 +3,6 @@ package comcl.duoc.appbogados.repository
 import comcl.duoc.appbogados.model.FormularioModel
 import comcl.duoc.appbogados.model.MensajesError
 
-
 class  FormularioRepository {
 
     private var formulario = FormularioModel()
@@ -11,7 +10,6 @@ class  FormularioRepository {
 
     fun getFormulario():  FormularioModel = formulario
     fun getMensajesError():  MensajesError = errores
-
 
     fun validacionNombre(): Boolean {
         if(formulario.nombre=="")
@@ -26,6 +24,5 @@ class  FormularioRepository {
         else
             return true
     }
-
 
 }
