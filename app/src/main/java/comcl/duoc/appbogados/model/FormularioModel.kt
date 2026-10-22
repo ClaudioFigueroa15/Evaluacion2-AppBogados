@@ -7,5 +7,5 @@ import androidx.compose.runtime.setValue
 class FormularioModel {
     var nombre by mutableStateOf("")
 
-    var correo by mutableStateOf("")
+    var rut by mutableStateOf("")
 }

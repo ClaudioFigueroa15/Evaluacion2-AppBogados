@@ -29,9 +29,9 @@ class SesionViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun iniciarSesion(nombre: String, correo: String) {
+    fun iniciarSesion(nombre: String, rut: String) { // Parámetro cambiado a rut
         viewModelScope.launch {
-            val sesion = Sesion(nombre = nombre, correo = correo)
+            val sesion = Sesion(nombre = nombre, rut = rut) // Cambiado a rut
             dao.guardar(sesion)
             sesionActual = sesion
         }

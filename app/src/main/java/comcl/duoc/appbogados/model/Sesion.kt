@@ -7,5 +7,5 @@ import androidx.room.PrimaryKey
 data class Sesion(
     @PrimaryKey val id: Int = 1,
     val nombre: String,
-    val correo: String
+    val rut: String
 )

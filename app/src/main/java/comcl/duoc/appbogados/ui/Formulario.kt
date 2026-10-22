@@ -3,8 +3,11 @@ package comcl.duoc.appbogados.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,22 +17,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import comcl.duoc.appbogados.viewmodel.FormularioViewModel
-
 
 @Composable
 fun Formulario(
     viewModel: FormularioViewModel,
-    onIngresoExitoso: (nombre: String, correo: String) -> Unit
+    onIngresoExitoso: (nombre: String, rut: String) -> Unit // Parámetro actualizado a rut
 ) {
 
     var abrirModal by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Título central implementado
+        Text(
+            text = "AppBogados",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+
         OutlinedTextField(
             value = viewModel.formulario.nombre,
             onValueChange = { viewModel.formulario.nombre = it },
@@ -37,16 +51,25 @@ fun Formulario(
             isError = !viewModel.verificarNombre(),
             supportingText = { Text( viewModel.mensajesError.nombre, color = androidx.compose.ui.graphics.Color.Red) }
         )
+
+        // Campo de RUT con filtro estricto
         OutlinedTextField(
-            value = viewModel.formulario.correo,
-            onValueChange = { viewModel.formulario.correo = it },
-            label = { Text("Ingresa correo") },
-            isError = !viewModel.verificarCorreo(),
-            supportingText = { Text( viewModel.mensajesError.correo, color = androidx.compose.ui.graphics.Color.Red) }
+            value = viewModel.formulario.rut,
+            onValueChange = { newValue ->
+                // Valida que solo se ingresen números y la letra K/k
+                if (newValue.all { it.isDigit() || it.equals('k', ignoreCase = true) }) {
+                    viewModel.formulario.rut = newValue
+                }
+            },
+            label = { Text("Ingresa RUT (sin puntos ni guión)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            isError = !viewModel.verificarRut(),
+            supportingText = { Text( viewModel.mensajesError.rut, color = androidx.compose.ui.graphics.Color.Red) }
         )
 
         Button(
             enabled = viewModel.verificarFormulario(),
+            modifier = Modifier.padding(top = 16.dp),
             onClick = {
                 if(viewModel.verificarFormulario()) {
                     abrirModal = true
@@ -64,10 +87,10 @@ fun Formulario(
                 confirmButton = {
                     Button(
                         onClick = {
-                            // Extrae el nombre y correo de tu viewModel y envíalos al callback:
+                            // Enviar datos al callback
                             onIngresoExitoso(
-                                viewModel.formulario.nombre, // Ajusta al nombre real de tus variables en FormularioViewModel
-                                viewModel.formulario.correo
+                                viewModel.formulario.nombre,
+                                viewModel.formulario.rut
                             )
                         }
                     ) {

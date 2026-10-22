@@ -36,9 +36,9 @@ class MainActivity : ComponentActivity() {
                     } else {
                         Formulario(
                             viewModel = formularioViewModel,
-                            onIngresoExitoso = { nombre, correo ->
+                            onIngresoExitoso = { nombre, rut ->
                                 // Llama aquí a la función de tu SesionViewModel que crea/guarda la sesión
-                                sesionViewModel.iniciarSesion(nombre, correo)
+                                sesionViewModel.iniciarSesion(nombre, rut)
                             }
                         )
                     }

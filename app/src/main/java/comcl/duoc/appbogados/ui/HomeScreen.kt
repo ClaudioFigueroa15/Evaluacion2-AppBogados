@@ -21,7 +21,7 @@ fun HomeScreen(sesion: Sesion, onCerrarSesion: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Bienvenido, ${sesion.nombre}")
-        Text(sesion.correo)
+        Text(sesion.rut) // Cambiado de correo a rut
         Spacer(Modifier.height(24.dp))
         Button(onClick = onCerrarSesion) {
             Text("Cerrar sesión")
