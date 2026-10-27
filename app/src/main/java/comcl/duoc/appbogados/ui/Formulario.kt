@@ -56,12 +56,15 @@ fun Formulario(
         OutlinedTextField(
             value = viewModel.formulario.rut,
             onValueChange = { newValue ->
-                // Valida que solo se ingresen números y la letra K/k
-                if (newValue.all { it.isDigit() || it.equals('k', ignoreCase = true) }) {
-                    viewModel.formulario.rut = newValue
+                // Máximo 9 caracteres: solo números, y el último puede ser K
+                val valido = newValue.length <= 9 && newValue.withIndex().all { (i, c) ->
+                    c.isDigit() || (i == 8 && c.equals('k', ignoreCase = true))
+                }
+                if (valido) {
+                    viewModel.formulario.rut = newValue.uppercase()
                 }
             },
-            label = { Text("Ingresa RUT (sin puntos ni guión)") },
+            label = { Text("Ingresa RUT (9 caracteres, el último puede ser K)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             isError = !viewModel.verificarRut(),
             supportingText = { Text( viewModel.mensajesError.rut, color = androidx.compose.ui.graphics.Color.Red) }
