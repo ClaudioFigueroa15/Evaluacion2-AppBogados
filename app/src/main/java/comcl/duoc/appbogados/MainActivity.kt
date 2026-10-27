@@ -1,16 +1,22 @@
 package comcl.duoc.appbogados
 
+import android.content.ActivityNotFoundException
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,11 +26,27 @@ import comcl.duoc.appbogados.ui.HomeScreen
 import comcl.duoc.appbogados.ui.theme.AppBogadosTheme
 import comcl.duoc.appbogados.viewmodel.FormularioViewModel
 import comcl.duoc.appbogados.viewmodel.SesionViewModel
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
 
     private val sesionViewModel: SesionViewModel by viewModels()
     private val formularioViewModel: FormularioViewModel by viewModels()
+
+    // La foto de cada usuario se guarda en el almacenamiento interno, identificada por su RUT
+    private fun archivoFoto(rut: String) = File(filesDir, "foto_perfil_$rut.jpg")
+
+    private fun guardarFoto(rut: String, bitmap: Bitmap) {
+        FileOutputStream(archivoFoto(rut)).use { salida ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, salida)
+        }
+    }
+
+    private fun cargarFoto(rut: String): Bitmap? {
+        val archivo = archivoFoto(rut)
+        return if (archivo.exists()) BitmapFactory.decodeFile(archivo.absolutePath) else null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +61,42 @@ class MainActivity : ComponentActivity() {
                     // false = pantalla de carpetas (página principal), true = tu HomeScreen
                     var verPerfil by rememberSaveable { mutableStateOf(false) }
 
-                    // Cierra la sesión y avisa con un mensaje
+                    // Foto de perfil del usuario: se lee del almacenamiento al iniciar sesión
+                    var fotoPerfil by remember(sesion?.rut) {
+                        mutableStateOf(sesion?.rut?.let { cargarFoto(it) })
+                    }
+
+                    // Cámara: guarda la foto de forma permanente y luego muestra el perfil
+                    val camara = rememberLauncherForActivityResult(
+                        ActivityResultContracts.TakePicturePreview()
+                    ) { bitmap ->
+                        if (bitmap != null && sesion != null) {
+                            guardarFoto(sesion.rut, bitmap)
+                            fotoPerfil = bitmap
+                        }
+                        verPerfil = true
+                    }
+
+                    val abrirCamara: () -> Unit = {
+                        try {
+                            camara.launch(null)
+                        } catch (e: ActivityNotFoundException) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "No se encontró una app de cámara",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            verPerfil = true
+                        }
+                    }
+
+                    // "Ver perfil": si ya hay foto guardada va directo al perfil,
+                    // si no, abre la cámara para tomarla la primera vez
+                    val verMiPerfil: () -> Unit = {
+                        if (fotoPerfil != null) verPerfil = true else abrirCamara()
+                    }
+
+                    // Cierra la sesión y avisa con un mensaje (la foto queda guardada)
                     val cerrarSesion = {
                         verPerfil = false
                         sesionViewModel.cerrarSesion()
@@ -59,13 +116,16 @@ class MainActivity : ComponentActivity() {
                         if (verPerfil) {
                             HomeScreen(
                                 sesion = sesion,
-                                onCerrarSesion = cerrarSesion
+                                onCerrarSesion = cerrarSesion,
+                                foto = fotoPerfil,
+                                onTomarFoto = abrirCamara
                             )
                         } else {
                             CarpetasScreen(
                                 sesion = sesion,
-                                onVerPerfil = { verPerfil = true },
-                                onCerrarSesion = cerrarSesion
+                                onVerPerfil = verMiPerfil,
+                                onCerrarSesion = cerrarSesion,
+                                foto = fotoPerfil
                             )
                         }
                     } else {
