@@ -25,9 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import comcl.duoc.appbogados.ui.CarpetasScreen
 import comcl.duoc.appbogados.ui.Formulario
+import comcl.duoc.appbogados.repository.DescargaRepository
 import comcl.duoc.appbogados.ui.HomeScreen
+import comcl.duoc.appbogados.ui.LectorPdfScreen
 import comcl.duoc.appbogados.ui.theme.AppBogadosTheme
 import comcl.duoc.appbogados.viewmodel.FormularioViewModel
+import comcl.duoc.appbogados.viewmodel.LectorPdfViewModel
 import comcl.duoc.appbogados.viewmodel.SesionViewModel
 import java.io.File
 import java.io.FileOutputStream
@@ -36,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
     private val sesionViewModel: SesionViewModel by viewModels()
     private val formularioViewModel: FormularioViewModel by viewModels()
+    private val lectorPdfViewModel: LectorPdfViewModel by viewModels()
 
     // La foto de cada usuario se guarda en el almacenamiento interno, identificada por su RUT
     private fun archivoFoto(rut: String) = File(filesDir, "foto_perfil_$rut.jpg")
@@ -102,12 +106,18 @@ class MainActivity : ComponentActivity() {
                     // Cierra la sesión y avisa con un mensaje (la foto queda guardada)
                     val cerrarSesion = {
                         verPerfil = false
+                        lectorPdfViewModel.cerrar()
                         sesionViewModel.cerrarSesion()
                         Toast.makeText(
                             this@MainActivity,
                             "Se cerró la sesión",
                             Toast.LENGTH_SHORT
                         ).show()
+                    }
+
+                    // Botón atrás del teléfono: del lector PDF vuelve a las carpetas
+                    BackHandler(enabled = lectorPdfViewModel.documentoActual != null) {
+                        lectorPdfViewModel.cerrar()
                     }
 
                     // Botón atrás del teléfono: de HomeScreen vuelve a las carpetas
@@ -132,12 +142,43 @@ class MainActivity : ComponentActivity() {
                                 onTomarFoto = abrirCamara
                             )
                         } else {
-                            CarpetasScreen(
-                                sesion = sesion,
-                                onVerPerfil = verMiPerfil,
-                                onCerrarSesion = cerrarSesion,
-                                foto = fotoPerfil
-                            )
+                            // Las carpetas quedan debajo del lector, así al volver
+                            // siguen desplegadas tal como las dejaste
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                CarpetasScreen(
+                                    sesion = sesion,
+                                    onVerPerfil = verMiPerfil,
+                                    onCerrarSesion = cerrarSesion,
+                                    foto = fotoPerfil,
+                                    onAbrirDocumento = { lectorPdfViewModel.abrir(it) }
+                                )
+
+                                val documento = lectorPdfViewModel.documentoActual
+                                if (documento != null) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxSize(),
+                                        color = MaterialTheme.colorScheme.background
+                                    ) {
+                                        LectorPdfScreen(
+                                            documento = documento,
+                                            paginas = lectorPdfViewModel.paginas,
+                                            cargando = lectorPdfViewModel.cargando,
+                                            error = lectorPdfViewModel.error,
+                                            onVolver = { lectorPdfViewModel.cerrar() },
+                                            onDescargar = {
+                                                val ok = DescargaRepository(this@MainActivity)
+                                                    .descargar(documento)
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    if (ok) "Descargado: ${documento.archivo}"
+                                                    else "No se pudo descargar ${documento.archivo}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     } else {
                         Formulario(
