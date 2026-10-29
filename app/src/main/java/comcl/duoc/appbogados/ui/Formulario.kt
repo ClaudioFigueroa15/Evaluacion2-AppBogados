@@ -98,7 +98,7 @@ fun Formulario(
             AlertDialog(
                 onDismissRequest = { /* ... */ },
                 title = { Text("Ingreso exitoso") },
-                text = { Text("Bienvenido...") },
+                text = { Text("Bienvenido a AppBogados, ${viewModel.formulario.nombre}!") },
                 confirmButton = {
                     Button(
                         onClick = {
