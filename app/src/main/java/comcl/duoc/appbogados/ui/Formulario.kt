@@ -1,8 +1,10 @@
 package comcl.duoc.appbogados.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -17,9 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import comcl.duoc.appbogados.R
 import comcl.duoc.appbogados.viewmodel.FormularioViewModel
 
 @Composable
@@ -35,13 +39,20 @@ fun Formulario(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         // Título central implementado
         Text(
             text = "AppBogados",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
+        // Imagen del logo (archivo: res/drawable/logo_abogado.png)
+        Image(
+            painter = painterResource(id = R.drawable.logo_abogado),
+            contentDescription = "Logo AppBogados",
+            modifier = Modifier.size(220.dp).padding(bottom = 6.dp)
         )
 
         OutlinedTextField(
@@ -78,6 +89,7 @@ fun Formulario(
                     abrirModal = true
                 }
             }
+
         ) {
             Text("Enviar")
         }
