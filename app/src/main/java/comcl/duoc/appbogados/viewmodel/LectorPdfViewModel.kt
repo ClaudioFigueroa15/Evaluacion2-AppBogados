@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+//Responsable de administrar el estado del lector de PDF
 class LectorPdfViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repositorio = PdfRepository(app)
@@ -32,6 +33,8 @@ class LectorPdfViewModel(app: Application) : AndroidViewModel(app) {
     var error by mutableStateOf(false)
         private set
 
+
+    //Inicia la apertura y renderizado de un PDF seleccionado por el usuario
     fun abrir(documento: Documento) {
         trabajo?.cancel()
         documentoActual = documento
@@ -49,6 +52,7 @@ class LectorPdfViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    //Cierra el PDF actual y cancela cualquier renderizado en curso
     fun cerrar() {
         trabajo?.cancel()
         documentoActual = null

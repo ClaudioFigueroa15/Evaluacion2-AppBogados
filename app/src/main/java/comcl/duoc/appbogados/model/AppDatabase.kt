@@ -5,11 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Sesion::class], version = 2) // Opcional: puedes subir la versión a 2
+@Database(entities = [Sesion::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
+
+    // Proporciona la instacia DAO para ejecutar consultas sobre la tabla "sesión"
     abstract fun sesionDao(): SesionDao
 
     companion object {
+
+        //Garantiza que los cambios de la instacia sean visibles a otros hilos de ejecución
         @Volatile
         private var INSTANCE: AppDatabase? = null
 

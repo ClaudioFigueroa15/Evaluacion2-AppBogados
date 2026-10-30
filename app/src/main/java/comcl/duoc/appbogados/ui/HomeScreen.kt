@@ -21,6 +21,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import comcl.duoc.appbogados.model.Sesion
 
+//Pantalla de perfil del usuario que muestra los datos de la sesión activa (nombre y RUT),
+//su fotografía de perfil capturada con la cámara del dispositivo (si existe) y las opciones
+//para capturar o actualizar la fotografía y cerrar la sesión actual.
 @Composable
 fun HomeScreen(
     sesion: Sesion,

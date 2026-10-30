@@ -27,6 +27,8 @@ class SesionViewModel(app: Application) : AndroidViewModel(app) {
     var sesionActual by mutableStateOf<Sesion?>(null)
         private set
 
+    //Consulta de manera asíncrona en Room si existe una sesión guardada previamente
+    //para restaurarla automáticamente al abrir la aplicación.
     init {
         viewModelScope.launch {
             sesionActual = dao.obtener()
@@ -34,6 +36,8 @@ class SesionViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    //Registra un nuevo inicio de sesión mostrando un estado de carga temporal de 2 segundos,
+    //persiste los datos del usuario en la base de datos local Room y actualiza [sesionActual]
     fun iniciarSesion(nombre: String, rut: String) { // Parámetro cambiado a rut
         viewModelScope.launch {
             cargandoLogin = true
@@ -45,6 +49,8 @@ class SesionViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    //Finaliza la sesión activa eliminando el registro almacenado en Room y restableciendo
+    //[sesionActual] a null para redirigir al usuario de vuelta al formulario de ingreso
     fun cerrarSesion() {
         viewModelScope.launch {
             dao.cerrar()

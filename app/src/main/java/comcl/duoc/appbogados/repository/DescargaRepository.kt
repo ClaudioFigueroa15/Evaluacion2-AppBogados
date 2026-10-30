@@ -8,12 +8,9 @@ import android.provider.MediaStore
 import comcl.duoc.appbogados.ui.Documento
 import java.io.File
 
-/**
- * Copia los PDFs guardados en res/raw a la carpeta Descargas del teléfono.
- */
 class DescargaRepository(private val context: Context) {
 
-    /** Descarga un solo documento. Devuelve true si salió bien. */
+    //Copia un PDF desde los recursos internos de la app hacia el directorio de Descargas del dispositivo
     fun descargar(documento: Documento): Boolean {
         return try {
             context.resources.openRawResource(documento.recurso).use { entrada ->
@@ -46,7 +43,7 @@ class DescargaRepository(private val context: Context) {
         }
     }
 
-    /** Descarga varios documentos de una vez. Devuelve cuántos se descargaron bien. */
+    // Ejecuta la descarga secuencial de la lista completa de PDFs de una carpeta
     fun descargarTodos(documentos: List<Documento>): Int {
         return documentos.count { descargar(it) }
     }
