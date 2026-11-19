@@ -1,30 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Circular green badge -->
+    <path android:fillColor="#00351F"
+        android:pathData="M256,18 A238,238 0,1 0,256 494 A238,238 0,1 0,256 18 Z"/>
+    <path android:fillColor="#27B83B"
+        android:pathData="M256,28 A228,228 0,1 0,256 484 A228,228 0,1 0,256 28 Z"/>
+    <path android:fillColor="#8CF34C"
+        android:pathData="M256,39 A217,217 0,1 0,256 473 A217,217 0,1 0,256 39 Z"/>
+    <path android:fillColor="#FFF9E9"
+        android:pathData="M256,62 A194,194 0,1 0,256 450 A194,194 0,1 0,256 62 Z"/>
+    <path android:fillColor="#00452B"
+        android:pathData="M256,73 A183,183 0,1 0,256 439 A183,183 0,1 0,256 73 Z"/>
+    <path android:fillColor="#087C3D"
+        android:pathData="M256,85 A171,171 0,1 0,256 427 A171,171 0,1 0,256 85 Z"/>
+
+    <!-- Open page block visible above the book cover -->
+    <path android:fillColor="#3A1B0C"
+        android:pathData="M156,171 Q145,149 169,139 L350,107 Q362,105 366,119 L374,132 L382,139 L382,161 L191,198 Z"/>
+    <path android:fillColor="#FFF0C9"
+        android:pathData="M169,151 Q179,141 194,139 L350,116 Q357,115 359,125 L366,135 L373,141 L187,177 Q170,178 160,166 Q155,159 169,151 Z"/>
+    <path android:fillColor="#E9C98E"
+        android:pathData="M176,158 L358,132 L363,139 L184,166 Z"/>
+    <path android:fillColor="#D9B77A"
+        android:pathData="M184,170 L367,145 L372,151 L191,179 Z"/>
+
+    <!-- Book spine and brown cover -->
+    <path android:fillColor="#3B1B0D"
+        android:pathData="M143,174 Q143,158 161,151 L190,166 L193,410 Q174,423 155,408 Q146,400 146,383 Z"/>
+    <path android:fillColor="#8B451F"
+        android:pathData="M157,174 Q158,163 177,158 L193,169 L195,404 Q178,416 162,402 Q155,395 155,380 Z"/>
+    <path android:fillColor="#D99A35"
+        android:pathData="M157,220 L194,233 L194,244 L157,231 Z M158,342 L195,355 L195,366 L158,353 Z"/>
+
+    <!-- Main book cover, slightly tilted to echo the original sketch -->
+    <path android:fillColor="#321609"
+        android:pathData="M187,170 L381,137 Q392,135 394,148 L397,374 Q397,390 382,393 L193,425 Q181,427 180,412 L178,188 Q177,176 187,170 Z"/>
+    <path android:fillColor="#995024"
+        android:pathData="M194,179 L373,149 Q382,147 384,158 L388,369 Q388,380 377,382 L198,413 Q190,414 190,403 L187,191 Q186,182 194,179 Z"/>
+    <path android:fillColor="#D99A3D"
+        android:pathData="M211,197 L362,171 L374,184 L375,355 L362,370 L207,396 L198,383 L196,209 Z"/>
+    <path android:fillColor="#8B451F"
+        android:pathData="M217,205 L357,181 L366,190 L367,350 L356,361 L213,385 L205,376 L203,215 Z"/>
+
+    <!-- A monogram -->
+    <path android:fillColor="#321609"
+        android:fillType="evenOdd"
+        android:pathData="M244,215 L283,211 L328,307 L290,314 L281,292 L247,298 L238,320 L199,327 Z M254,271 L273,268 L264,247 Z"/>
+    <path android:fillColor="#FFF3D4"
+        android:fillType="evenOdd"
+        android:pathData="M238,207 L277,203 L322,299 L284,306 L275,284 L241,290 L232,312 L193,319 Z M248,263 L267,260 L258,239 Z"/>
+
+    <!-- B monogram, overlapping the lower-right of A -->
+    <path android:fillColor="#321609"
+        android:pathData="M258,282 L296,278 C320,276 334,288 335,306 C336,318 330,327 321,333 C335,338 342,349 342,365 C343,388 326,403 298,407 L261,413 Z
+            M282,301 L282,326 L297,324 C307,323 312,318 311,310 C311,303 306,299 296,300 Z
+            M284,345 L285,380 L300,378 C312,377 318,371 317,360 C316,349 310,344 299,344 Z"/>
+    <path android:fillColor="#FFF3D4"
+        android:pathData="M250,274 L288,270 C312,268 326,280 327,298 C328,310 322,319 313,325 C327,330 334,341 334,357 C335,380 318,395 290,399 L253,405 Z
+            M274,293 L274,318 L289,316 C299,315 304,310 303,302 C303,295 298,291 288,292 Z
+            M276,337 L277,372 L292,370 C304,369 310,363 309,352 C308,341 302,336 291,336 Z"/>
 </vector>
