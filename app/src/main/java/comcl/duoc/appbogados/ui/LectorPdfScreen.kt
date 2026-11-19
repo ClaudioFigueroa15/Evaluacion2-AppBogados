@@ -1,115 +1,55 @@
 package comcl.duoc.appbogados.ui
 
-import android.graphics.Bitmap
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import comcl.duoc.appbogados.R
+import comcl.duoc.appbogados.model.Documento
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LectorPdfScreen(
-    documento: Documento,
-    paginas: List<Bitmap>,
-    cargando: Boolean,
-    error: Boolean,
-    onVolver: () -> Unit,
-    onDescargar: () -> Unit
+    documento: Documento?,
+    onBack: () -> Unit
 ) {
-    val estadoLista = rememberLazyListState()
-
-    Scaffold { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-
-            // Barra superior: volver + nombre + página actual + descargar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onVolver) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = documento.nombre,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (paginas.isNotEmpty()) {
-                        Text(
-                            text = "Página ${estadoLista.firstVisibleItemIndex + 1} de ${paginas.size}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(documento?.titulo ?: "Detalle del Documento") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 }
-                IconButton(onClick = onDescargar) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_download),
-                        contentDescription = "Descargar ${documento.nombre}"
-                    )
-                }
-            }
-            HorizontalDivider()
-
-            // Contenido: spinner, error o las páginas del PDF
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .background(Color(0xFFE0E0E0)),
-                contentAlignment = Alignment.Center
-            ) {
-                when {
-                    cargando -> CircularProgressIndicator()
-                    error -> Text(
-                        text = "No se pudo abrir el documento",
-                        modifier = Modifier.padding(16.dp)
-                    )
-                    else -> LazyColumn(
-                        state = estadoLista,
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)
-                    ) {
-                        itemsIndexed(paginas) { indice, pagina ->
-                            Image(
-                                bitmap = pagina.asImageBitmap(),
-                                contentDescription = "Página ${indice + 1}",
-                                contentScale = ContentScale.FillWidth,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+        ) {
+            if (documento == null) {
+                Text(
+                    text = "No se ha seleccionado ningún documento.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            } else {
+                Text(
+                    text = documento.titulo,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = documento.contenido,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
     }

@@ -1,11 +1,24 @@
 package comcl.duoc.appbogados.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+data class Usuario(
+    val id: Int? = null,
+    val nombre_usuario: String,
+    val rut: String,
+    val contrasena: String? = null
+)
 
-@Entity(tableName = "sesion")
-data class Sesion(
-    @PrimaryKey val id: Int = 1,
-    val nombre: String,
-    val rut: String
+data class LoginRequest(
+    val rut: String,
+    val contrasena: String
+)
+
+data class XanoErrorResponse(
+    val message: String? = null
+)
+
+data class Documento(
+    val id: Int? = null,
+    val titulo: String,
+    val contenido: String,
+    val categoria: String? = "General"
 )

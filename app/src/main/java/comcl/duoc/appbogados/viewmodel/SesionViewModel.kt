@@ -1,60 +1,160 @@
 package comcl.duoc.appbogados.viewmodel
 
 import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import comcl.duoc.appbogados.model.AppDatabase
-import comcl.duoc.appbogados.model.Sesion
-import kotlinx.coroutines.delay
+import com.google.gson.Gson
+import comcl.duoc.appbogados.model.Documento
+import comcl.duoc.appbogados.model.Usuario
+import comcl.duoc.appbogados.model.XanoErrorResponse
+import comcl.duoc.appbogados.repository.XanoRepository
+import comcl.duoc.appbogados.model.SessionManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class SesionViewModel(app: Application) : AndroidViewModel(app) {
+class SesionViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dao = AppDatabase.getInstance(app).sesionDao()
+    private val repository = XanoRepository()
+    private val sessionManager = SessionManager(application)
 
-    // true mientras se lee Room al abrir la app (evita mostrar el formulario un instante)
-    var cargando by mutableStateOf(true)
-        private set
+    private val _usuarioActual = MutableStateFlow<Usuario?>(
+        if (sessionManager.obtenerIsLoggedIn()) {
+            Usuario(
+                nombre_usuario = sessionManager.obtenerNombreUsuario() ?: "",
+                rut = sessionManager.obtenerRut() ?: "",
+                contrasena = null
+            )
+        } else null
+    )
+    val usuarioActual: StateFlow<Usuario?> = _usuarioActual
 
-    // true durante los 2 segundos de "cargando" después de iniciar sesión
-    var cargandoLogin by mutableStateOf(false)
-        private set
+    private val _sesionIniciada = MutableStateFlow(sessionManager.obtenerIsLoggedIn())
+    val sesionIniciada: StateFlow<Boolean> = _sesionIniciada
 
-    // null = no hay sesión iniciada
-    var sesionActual by mutableStateOf<Sesion?>(null)
-        private set
+    private val _mensajeError = MutableStateFlow<String?>(null)
+    val mensajeError: StateFlow<String?> = _mensajeError
 
-    //Consulta de manera asíncrona en Room si existe una sesión guardada previamente
-    //para restaurarla automáticamente al abrir la aplicación.
-    init {
+    private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando
+
+    private val _documentos = MutableStateFlow<List<Documento>>(emptyList())
+    val documentos: StateFlow<List<Documento>> = _documentos
+
+    fun registrarUsuario(
+        nombre_usuario: String,
+        rut: String,
+        contrasena: String,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch {
-            sesionActual = dao.obtener()
-            cargando = false
+            _cargando.value = true
+            _mensajeError.value = null
+            try {
+                val nuevoUsuario = Usuario(
+                    nombre_usuario = nombre_usuario.trim(),
+                    rut = rut.trim(),
+                    contrasena = contrasena
+                )
+                val response = repository.registrarUsuario(nuevoUsuario)
+                val userBody = response.body()
+
+                if (response.isSuccessful && userBody != null && userBody.id != null) {
+                    _usuarioActual.value = userBody
+                    _sesionIniciada.value = true
+                    sessionManager.guardarSesion(true, userBody.nombre_usuario, userBody.rut, null)
+                    cargarDocumentos()
+                    onSuccess()
+                } else {
+                    _mensajeError.value = extraerMensajeError(response.errorBody()?.string())
+                        ?: "No se pudo registrar el usuario (Código: ${response.code()})"
+                }
+            } catch (e: Exception) {
+                _mensajeError.value = "Error de conexión con Xano: ${e.localizedMessage}"
+            } finally {
+                _cargando.value = false
+            }
         }
     }
 
-    //Registra un nuevo inicio de sesión mostrando un estado de carga temporal de 2 segundos,
-    //persiste los datos del usuario en la base de datos local Room y actualiza [sesionActual]
-    fun iniciarSesion(nombre: String, rut: String) { // Parámetro cambiado a rut
+    fun iniciarSesion(
+        rut: String,
+        contrasena: String,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch {
-            cargandoLogin = true
-            delay(2000) // espera de 2 segundos mostrando el spinner
-            val sesion = Sesion(nombre = nombre, rut = rut) // Cambiado a rut
-            dao.guardar(sesion)
-            sesionActual = sesion
-            cargandoLogin = false
+            _cargando.value = true
+            _mensajeError.value = null
+            try {
+                val response = repository.iniciarSesion(rut, contrasena)
+
+                if (response.isSuccessful) {
+                    val usuarioLogueado = response.body()
+
+                    // Solo permite ingresar si Xano devolvió un registro real con id y rut válidos
+                    if (usuarioLogueado != null && usuarioLogueado.id != null && usuarioLogueado.rut.isNotBlank()) {
+                        _usuarioActual.value = usuarioLogueado
+                        _sesionIniciada.value = true
+                        sessionManager.guardarSesion(
+                            isLoggedIn = true,
+                            nombreUsuario = usuarioLogueado.nombre_usuario,
+                            rut = usuarioLogueado.rut,
+                            fotoBase64 = null
+                        )
+                        cargarDocumentos()
+                        onSuccess()
+                    } else {
+                        _mensajeError.value = "Usuario no registrado"
+                    }
+                } else {
+                    _mensajeError.value = when (response.code()) {
+                        404 -> "Usuario no registrado"
+                        401 -> "Contraseña incorrecta"
+                        else -> extraerMensajeError(response.errorBody()?.string())
+                            ?: "Error al iniciar sesión (Código: ${response.code()})"
+                    }
+                }
+            } catch (e: Exception) {
+                _mensajeError.value = "Error al conectar con el servidor: ${e.localizedMessage}"
+            } finally {
+                _cargando.value = false
+            }
         }
     }
 
-    //Finaliza la sesión activa eliminando el registro almacenado en Room y restableciendo
-    //[sesionActual] a null para redirigir al usuario de vuelta al formulario de ingreso
+    private fun extraerMensajeError(errorJson: String?): String? {
+        if (errorJson.isNullOrBlank()) return null
+        return try {
+            Gson().fromJson(errorJson, XanoErrorResponse::class.java)?.message
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun cargarDocumentos() {
+        viewModelScope.launch {
+            try {
+                _documentos.value = repository.obtenerDocumentos()
+            } catch (e: Exception) {
+                _mensajeError.value = "Error al obtener documentos: ${e.localizedMessage}"
+            }
+        }
+    }
+
+    fun limpiarError() {
+        _mensajeError.value = null
+    }
+
     fun cerrarSesion() {
-        viewModelScope.launch {
-            dao.cerrar()
-            sesionActual = null
-        }
+        sessionManager.cerrarSesion()
+        _usuarioActual.value = null
+        _sesionIniciada.value = false
+        _mensajeError.value = null
     }
+
+    fun actualizarFotoPersistente(fotoBase64: String?) {
+        sessionManager.actualizarFotoPerfil(fotoBase64)
+    }
+
+    fun obtenerFotoPersistente(): String? = sessionManager.obtenerFotoPerfil()
 }

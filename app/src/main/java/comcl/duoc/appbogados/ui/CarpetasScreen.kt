@@ -1,381 +1,245 @@
 package comcl.duoc.appbogados.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import androidx.annotation.RawRes
-import androidx.compose.animation.AnimatedVisibility
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import comcl.duoc.appbogados.R
-import comcl.duoc.appbogados.model.Sesion
-import comcl.duoc.appbogados.repository.DescargaRepository
-import kotlinx.coroutines.launch
+import androidx.core.content.ContextCompat
+import comcl.duoc.appbogados.model.Documento
+import comcl.duoc.appbogados.viewmodel.LectorPdfViewModel
+import comcl.duoc.appbogados.viewmodel.SesionViewModel
+import java.io.ByteArrayOutputStream
 
-// nombre = lo que ve el usuario, archivo = nombre con que se guarda al descargar,
-// recurso = PDF dentro de res/raw
-data class Documento(val nombre: String, val archivo: String, @RawRes val recurso: Int)
-
-data class Carpeta(val id: Int, val nombre: String, val documentos: List<Documento> = emptyList())
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarpetasScreen(
-    sesion: Sesion,
-    onVerPerfil: () -> Unit,
-    onCerrarSesion: () -> Unit,
-    foto: Bitmap? = null,   // foto de perfil (si existe, reemplaza el ícono)
-    onAbrirDocumento: (Documento) -> Unit = {}   // abre el PDF dentro de la app
+    sesionViewModel: SesionViewModel,
+    lectorPdfViewModel: LectorPdfViewModel,
+    onLogout: () -> Unit
 ) {
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val documentos by sesionViewModel.documentos.collectAsState()
+    val usuarioActual by sesionViewModel.usuarioActual.collectAsState()
+    val docSeleccionado by lectorPdfViewModel.documentoSeleccionado.collectAsState()
 
-    var busqueda by remember { mutableStateOf("") }
-    var menuPerfilAbierto by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf("Todas") }
 
-    // Datos de ejemplo: más adelante se pueden cargar desde Room o una API
-    val carpetas = remember {
-        listOf(
-            Carpeta(
-                1, "Carpeta 1",
-                listOf(
-                    Documento("Contrato de servicios", "contrato_servicios.pdf", R.raw.contrato_servicios),
-                    Documento("Demanda civil", "demanda_civil.pdf", R.raw.demanda_civil)
-                )
-            ),
-            Carpeta(
-                2, "Carpeta 2",
-                listOf(Documento("Poder notarial", "poder_notarial.pdf", R.raw.poder_notarial))
-            ),
-            Carpeta(3, "Carpeta 3") // sin documentos
+    // Cargar foto persistente si existe
+    var fotoPerfilBitmap by remember {
+        mutableStateOf<Bitmap?>(
+            sesionViewModel.obtenerFotoPersistente()?.let { base64Str ->
+                try {
+                    val decodedBytes = Base64.decode(base64Str, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                } catch (e: Exception) {
+                    null
+                }
+            }
         )
     }
-    // El buscador encuentra por nombre de carpeta o por nombre de documento
-    val carpetasFiltradas = carpetas.filter { carpeta ->
-        carpeta.nombre.contains(busqueda, ignoreCase = true) ||
-                carpeta.documentos.any { it.nombre.contains(busqueda, ignoreCase = true) }
-    }
 
-    val context = LocalContext.current
-    val descargaRepository = remember { DescargaRepository(context) }
-
-    fun mostrarMensaje(texto: String) {
-        scope.launch { snackbarHostState.showSnackbar(texto) }
-    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    text = "AppBogados",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
-                NavigationDrawerItem(
-                    label = { Text("Inicio") },
-                    selected = true,
-                    onClick = { scope.launch { drawerState.close() } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-                NavigationDrawerItem(
-                    label = { Text("Cerrar sesión") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onCerrarSesion()
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-            }
+    // Launcher para tomar la foto con la cámara
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            fotoPerfilBitmap = bitmap
+            // Convertir Bitmap a Base64 para persistencia
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            val encodedBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+            sesionViewModel.actualizarFotoPersistente(encodedBase64)
         }
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                // Fila superior: buscador + perfil
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = busqueda,
-                        onValueChange = { busqueda = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Buscar documento") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(28.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Box {
-                        IconButton(onClick = { menuPerfilAbierto = true }) {
-                            if (foto != null) {
+    }
+
+    // Launcher nativo para solicitar permiso de cámara
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        sesionViewModel.cargarDocumentos()
+    }
+
+    if (docSeleccionado != null) {
+        LectorPdfScreen(
+            documento = docSeleccionado,
+            onBack = { lectorPdfViewModel.limpiarSeleccion() }
+        )
+        return
+    }
+
+    val categoriasDisponibles = listOf("Todas", "Civil", "Contratos", "Notarial")
+    val documentosFiltrados = documentos.filter { doc ->
+        val coincideBusqueda = doc.titulo.contains(searchQuery, ignoreCase = true) ||
+                doc.contenido.contains(searchQuery, ignoreCase = true)
+        val coincideCategoria = categoriaSeleccionada == "Todas" || doc.categoria.equals(categoriaSeleccionada, ignoreCase = true)
+        coincideBusqueda && coincideCategoria
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    // Validar si ya tiene el permiso de cámara concedido
+                                    when {
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.CAMERA
+                                        ) == PackageManager.PERMISSION_GRANTED -> {
+                                            cameraLauncher.launch(null)
+                                        }
+                                        else -> {
+                                            // Lanzar diálogo nativo del sistema operativo
+                                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                                        }
+                                    }
+                                }
+                        ) {
+                            if (fotoPerfilBitmap != null) {
                                 Image(
-                                    bitmap = foto.asImageBitmap(),
-                                    contentDescription = "Perfil",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
+                                    bitmap = fotoPerfilBitmap!!.asImageBitmap(),
+                                    contentDescription = "Foto de Perfil",
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             } else {
-                                Icon(
-                                    imageVector = Icons.Default.AccountCircle,
-                                    contentDescription = "Perfil",
-                                    modifier = Modifier.size(40.dp)
-                                )
-                            }
-                        }
-                        DropdownMenu(
-                            expanded = menuPerfilAbierto,
-                            onDismissRequest = { menuPerfilAbierto = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(sesion.nombre) },
-                                onClick = {}
-                            )
-                            DropdownMenuItem(
-                                text = { Text("RUT: ${sesion.rut}") },
-                                onClick = {}
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Ver perfil") },
-                                onClick = {
-                                    menuPerfilAbierto = false
-                                    onVerPerfil()
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Cerrar sesión") },
-                                onClick = {
-                                    menuPerfilAbierto = false
-                                    onCerrarSesion()
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Fila: menú + Notas
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = { mostrarMensaje("Notas próximamente") }) {
-                        Text("Notas")
-                    }
-                }
-
-                // Lista de carpetas
-                if (carpetasFiltradas.isEmpty()) {
-                    Text(
-                        text = "No se encontraron resultados",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(carpetasFiltradas, key = { it.id }) { carpeta ->
-                            FilaCarpeta(
-                                carpeta = carpeta,
-                                onDescargarTodo = {
-                                    if (carpeta.documentos.isEmpty()) {
-                                        mostrarMensaje("${carpeta.nombre} no tiene documentos")
-                                    } else {
-                                        val ok = descargaRepository.descargarTodos(carpeta.documentos)
-                                        mostrarMensaje(
-                                            if (ok == carpeta.documentos.size)
-                                                "Se descargaron $ok documentos de ${carpeta.nombre}"
-                                            else
-                                                "Error: solo se descargaron $ok de ${carpeta.documentos.size}"
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = usuarioActual?.nombre_usuario?.take(1)?.uppercase() ?: "A",
+                                            style = MaterialTheme.typography.titleMedium
                                         )
                                     }
-                                },
-                                onAbrirDocumento = onAbrirDocumento,
-                                onDescargarDocumento = { doc ->
-                                    val ok = descargaRepository.descargar(doc)
-                                    mostrarMensaje(
-                                        if (ok) "Descargado: ${doc.archivo}"
-                                        else "No se pudo descargar ${doc.archivo}"
-                                    )
                                 }
-                            )
-                            HorizontalDivider()
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(text = usuarioActual?.nombre_usuario ?: "Abogado", style = MaterialTheme.typography.titleMedium)
+                            Text(text = "Toca para usar cámara", style = MaterialTheme.typography.bodySmall)
                         }
                     }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Buscar documento legal...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categoriasDisponibles) { categoria ->
+                    FilterChip(
+                        selected = categoriaSeleccionada == categoria,
+                        onClick = { categoriaSeleccionada = categoria },
+                        label = { Text(categoria) }
+                    )
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun FilaCarpeta(
-    carpeta: Carpeta,
-    onDescargarTodo: () -> Unit,
-    onAbrirDocumento: (Documento) -> Unit,
-    onDescargarDocumento: (Documento) -> Unit
-) {
-    var expandida by rememberSaveable(carpeta.id) { mutableStateOf(false) }
+            Spacer(modifier = Modifier.height(16.dp))
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Fila de la carpeta: al tocarla se despliega / se cierra
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expandida = !expandida }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color.Black, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_folder),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
-            ) {
-                Text(
-                    text = carpeta.nombre,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = when (carpeta.documentos.size) {
-                        0 -> "Sin documentos"
-                        1 -> "1 documento"
-                        else -> "${carpeta.documentos.size} documentos"
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Icon(
-                imageVector = if (expandida) Icons.Default.KeyboardArrowUp
-                else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expandida) "Cerrar carpeta" else "Abrir carpeta"
+            Text(
+                text = "Carpetas de Documentos",
+                style = MaterialTheme.typography.titleLarge
             )
-            // Descarga todos los documentos de la carpeta juntos
-            IconButton(onClick = onDescargarTodo) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_download),
-                    contentDescription = "Descargar todo de ${carpeta.nombre}"
-                )
-            }
-        }
 
-        // Contenido desplegable: lista de documentos
-        AnimatedVisibility(visible = expandida) {
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 64.dp)) {
-                if (carpeta.documentos.isEmpty()) {
-                    Text(
-                        text = "Esta carpeta no tiene documentos",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
-                } else {
-                    carpeta.documentos.forEach { doc ->
-                        Row(
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (documentos.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (documentosFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No se encontraron documentos en esta categoría.")
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(documentosFiltrados) { doc ->
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onAbrirDocumento(doc) } // tocar = leer el PDF
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable {
+                                    lectorPdfViewModel.seleccionarDocumento(doc)
+                                },
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = "PDF",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                modifier = Modifier
-                                    .background(Color(0xFFC62828), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                            Text(
-                                text = doc.nombre,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 12.dp)
-                            )
-                            // Descarga solo este documento
-                            IconButton(onClick = { onDescargarDocumento(doc) }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_download),
-                                    contentDescription = "Descargar ${doc.nombre}",
-                                    modifier = Modifier.size(20.dp)
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = doc.titulo,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = doc.contenido.take(90) + "...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

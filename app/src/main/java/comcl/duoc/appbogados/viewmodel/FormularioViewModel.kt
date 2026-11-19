@@ -1,54 +1,92 @@
 package comcl.duoc.appbogados.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import comcl.duoc.appbogados.repository.FormularioRepository
-import comcl.duoc.appbogados.model.FormularioModel
-import comcl.duoc.appbogados.model.MensajesError
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class FormularioViewModel : ViewModel() {
-    private val repository = FormularioRepository()
 
-    // Estado observable que expone los campos actuales del formulario (nombre y RUT) a la vista
-    var formulario: FormularioModel by mutableStateOf( repository.getFormulario() )
+    // Campos para Registro
+    var nombreUsuarioReg = MutableStateFlow("")
+    var rutReg = MutableStateFlow("")
+    var contrasenaReg = MutableStateFlow("")
 
-    // Estado observable que expone los mensajes de error vigentes para cada campo del formulario
-    var mensajesError: MensajesError by mutableStateOf( repository.getMensajesError() )
+    // Campos para Login
+    var rutLogin = MutableStateFlow("")
+    var contrasenaLogin = MutableStateFlow("")
 
+    private val _errorValidacion = MutableStateFlow<String?>(null)
+    val errorValidacion: StateFlow<String?> = _errorValidacion
 
-    //Evalúa de forma conjunta si todos los campos del formulario son válidos
-    fun verificarFormulario(): Boolean {
-        return verificarNombre() && verificarRut()
+    // Expresión regular para RUT: 8 dígitos obligatorios, un guion, y un número o K (ej: 12345678-9 o 12345678-K)
+    private val rutRegex = Regex("^\\d{8}-[0-9kK]$")
+
+    fun validarRegistro(): Boolean {
+        val nombre = nombreUsuarioReg.value.trim()
+        val rut = rutReg.value.trim()
+        val pass = contrasenaReg.value
+
+        // 1. Si todo está vacío
+        if (nombre.isEmpty() && rut.isEmpty() && pass.isEmpty()) {
+            _errorValidacion.value = "Por favor completa todos los campos de registro"
+            return false
+        }
+
+        // 2. Validar campos vacíos individuales
+        if (nombre.isEmpty() || rut.isEmpty() || pass.isEmpty()) {
+            _errorValidacion.value = "Por favor completa todos los campos"
+            return false
+        }
+
+        // 3. Validación estricta del RUT
+        if (!rutRegex.matches(rut)) {
+            _errorValidacion.value = "El RUT debe tener exactamente 8 dígitos, un guion y un dígito o K (Ej: 12345678-9)"
+            return false
+        }
+
+        // 4. Validación de longitud de contraseña
+        if (pass.length < 7) {
+            _errorValidacion.value = "La contraseña debe ser de mínimo 7 caracteres"
+            return false
+        }
+        if (pass.length > 30) {
+            _errorValidacion.value = "La contraseña debe tener como máximo 30 caracteres"
+            return false
+        }
+
+        _errorValidacion.value = null
+        return true
     }
 
-    //Verifica la validez del campo nombre consultando al repositorio y actualiza el mensaje de error
-    fun verificarNombre(): Boolean {
-        if (!repository.validacionNombre()) {
-            mensajesError.nombre = "El nombre no puede estar vacío"
-            return false
-        } else {
-            mensajesError.nombre = ""
-            return true
-        }
-    }
+    fun validarLogin(): Boolean {
+        val rut = rutLogin.value.trim()
+        val pass = contrasenaLogin.value
 
-    //Verifica que el RUT ingresado tenga exactamente 9 caracteres (8 dígitos iniciales y
-    //un dígito o letra 'K' al final) y actualiza el mensaje de error del campo según el resultado
-    fun verificarRut(): Boolean {
-        val rut = formulario.rut.uppercase()
-        // 9 caracteres: los primeros 8 son números y el último es número o K
-        val valido = rut.length == 9 &&
-                rut.take(8).all { it.isDigit() } &&
-                (rut.last().isDigit() || rut.last() == 'K')
-
-        if (!valido) {
-            mensajesError.rut = "El RUT debe tener 9 caracteres: números, y el último puede ser K"
+        if (rut.isEmpty() && pass.isEmpty()) {
+            _errorValidacion.value = "Por favor completa todos los campos de inicio de sesión"
             return false
-        } else {
-            mensajesError.rut = ""
-            return true
         }
+
+        if (rut.isEmpty() || pass.isEmpty()) {
+            _errorValidacion.value = "Por favor completa todos los campos"
+            return false
+        }
+
+        if (!rutRegex.matches(rut)) {
+            _errorValidacion.value = "Formato de RUT inválido (Ej: 12345678-9)"
+            return false
+        }
+
+        if (pass.length < 7) {
+            _errorValidacion.value = "La contraseña debe ser de mínimo 7 caracteres"
+            return false
+        }
+        if (pass.length > 30) {
+            _errorValidacion.value = "La contraseña debe tener como máximo 30 caracteres"
+            return false
+        }
+
+        _errorValidacion.value = null
+        return true
     }
 }
