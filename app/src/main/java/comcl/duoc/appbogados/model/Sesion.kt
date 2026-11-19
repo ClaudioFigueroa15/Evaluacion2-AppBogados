@@ -20,5 +20,6 @@ data class Documento(
     val id: Int? = null,
     val titulo: String,
     val contenido: String,
-    val categoria: String? = "General"
+    val categoria: String? = "General",
+    val pdf_base64: String? = null
 )

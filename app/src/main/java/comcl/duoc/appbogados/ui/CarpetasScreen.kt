@@ -55,7 +55,7 @@ fun CarpetasScreen(
 
     if (docSeleccionado != null) {
         LectorPdfScreen(
-            documento = docSeleccionado,
+            lectorPdfViewModel = lectorPdfViewModel,
             onBack = { lectorPdfViewModel.limpiarSeleccion() }
         )
         return
@@ -64,7 +64,7 @@ fun CarpetasScreen(
     val categoriasDisponibles = listOf("Todas", "Civil", "Contratos", "Notarial")
     val documentosFiltrados = documentos.filter { doc ->
         val coincideBusqueda = doc.titulo.contains(searchQuery, ignoreCase = true) ||
-                doc.contenido.contains(searchQuery, ignoreCase = true)
+                (doc.contenido?.contains(searchQuery, ignoreCase = true) == true)
         val coincideCategoria = categoriaSeleccionada == "Todas" ||
                 doc.categoria.equals(categoriaSeleccionada, ignoreCase = true)
         coincideBusqueda && coincideCategoria
@@ -199,7 +199,11 @@ fun CarpetasScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = doc.contenido.take(90) + "...",
+                                    text = if (!doc.contenido.isNullOrBlank()) {
+                                        doc.contenido.take(90)
+                                    } else {
+                                        "Toca para abrir documento PDF"
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
