@@ -18,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import comcl.duoc.appbogados.R
 import comcl.duoc.appbogados.viewmodel.LectorPdfViewModel
 import comcl.duoc.appbogados.viewmodel.SesionViewModel
 
@@ -34,6 +36,10 @@ fun CarpetasScreen(
     val usuarioActual by sesionViewModel.usuarioActual.collectAsState()
     val fotoBase64 by sesionViewModel.fotoPerfilBase64.collectAsState()
     val docSeleccionado by lectorPdfViewModel.documentoSeleccionado.collectAsState()
+    val descargando by lectorPdfViewModel.descargando.collectAsState()
+    val mensajeDescarga by lectorPdfViewModel.mensajeDescarga.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var searchQuery by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("Todas") }
@@ -51,6 +57,13 @@ fun CarpetasScreen(
 
     LaunchedEffect(Unit) {
         sesionViewModel.cargarDocumentos()
+    }
+
+    LaunchedEffect(mensajeDescarga) {
+        if (docSeleccionado == null && mensajeDescarga != null) {
+            snackbarHostState.showSnackbar(mensajeDescarga!!)
+            lectorPdfViewModel.limpiarMensajeDescarga()
+        }
     }
 
     if (docSeleccionado != null) {
@@ -71,6 +84,7 @@ fun CarpetasScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -190,23 +204,43 @@ fun CarpetasScreen(
                                 },
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = doc.titulo,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = if (!doc.contenido.isNullOrBlank()) {
-                                        doc.contenido.take(90)
-                                    } else {
-                                        "Toca para abrir documento PDF"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = doc.titulo,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = if (!doc.contenido.isNullOrBlank()) {
+                                            doc.contenido.take(90)
+                                        } else {
+                                            "Toca para abrir documento PDF"
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (!doc.pdf_base64.isNullOrBlank()) {
+                                    IconButton(
+                                        onClick = { lectorPdfViewModel.descargarDocumento(doc) },
+                                        enabled = !descargando
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_download),
+                                            contentDescription = "Descargar ${doc.titulo}",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

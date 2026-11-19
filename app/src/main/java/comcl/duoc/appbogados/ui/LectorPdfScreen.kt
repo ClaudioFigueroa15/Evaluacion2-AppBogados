@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import comcl.duoc.appbogados.R
 import comcl.duoc.appbogados.viewmodel.LectorPdfViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,8 +29,20 @@ fun LectorPdfScreen(
     val paginas by lectorPdfViewModel.paginasPdf.collectAsState()
     val cargando by lectorPdfViewModel.cargandoPdf.collectAsState()
     val error by lectorPdfViewModel.errorPdf.collectAsState()
+    val descargando by lectorPdfViewModel.descargando.collectAsState()
+    val mensajeDescarga by lectorPdfViewModel.mensajeDescarga.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(mensajeDescarga) {
+        mensajeDescarga?.let { mensaje ->
+            snackbarHostState.showSnackbar(mensaje)
+            lectorPdfViewModel.limpiarMensajeDescarga()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(documento?.titulo ?: "Lector PDF") },
@@ -38,6 +52,27 @@ fun LectorPdfScreen(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver"
                         )
+                    }
+                },
+                actions = {
+                    val docActual = documento
+                    if (docActual != null && !docActual.pdf_base64.isNullOrBlank()) {
+                        IconButton(
+                            onClick = { lectorPdfViewModel.descargarDocumento(docActual) },
+                            enabled = !descargando
+                        ) {
+                            if (descargando) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_download),
+                                    contentDescription = "Descargar PDF"
+                                )
+                            }
+                        }
                     }
                 }
             )
