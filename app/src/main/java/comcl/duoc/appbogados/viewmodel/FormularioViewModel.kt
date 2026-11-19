@@ -18,7 +18,6 @@ class FormularioViewModel : ViewModel() {
     private val _errorValidacion = MutableStateFlow<String?>(null)
     val errorValidacion: StateFlow<String?> = _errorValidacion
 
-    // Expresión regular para RUT: 8 dígitos obligatorios, un guion, y un número o K (ej: 12345678-9 o 12345678-K)
     private val rutRegex = Regex("^\\d{8}-[0-9kK]$")
 
     fun validarRegistro(): Boolean {
@@ -26,25 +25,21 @@ class FormularioViewModel : ViewModel() {
         val rut = rutReg.value.trim()
         val pass = contrasenaReg.value
 
-        // 1. Si todo está vacío
         if (nombre.isEmpty() && rut.isEmpty() && pass.isEmpty()) {
             _errorValidacion.value = "Por favor completa todos los campos de registro"
             return false
         }
 
-        // 2. Validar campos vacíos individuales
         if (nombre.isEmpty() || rut.isEmpty() || pass.isEmpty()) {
             _errorValidacion.value = "Por favor completa todos los campos"
             return false
         }
 
-        // 3. Validación estricta del RUT
         if (!rutRegex.matches(rut)) {
             _errorValidacion.value = "El RUT debe tener exactamente 8 dígitos, un guion y un dígito o K (Ej: 12345678-9)"
             return false
         }
 
-        // 4. Validación de longitud de contraseña
         if (pass.length < 7) {
             _errorValidacion.value = "La contraseña debe ser de mínimo 7 caracteres"
             return false
@@ -88,5 +83,15 @@ class FormularioViewModel : ViewModel() {
 
         _errorValidacion.value = null
         return true
+    }
+
+    // Limpia tanto los campos de Login como los de Registro y el error de validación
+    fun limpiarCampos() {
+        nombreUsuarioReg.value = ""
+        rutReg.value = ""
+        contrasenaReg.value = ""
+        rutLogin.value = ""
+        contrasenaLogin.value = ""
+        _errorValidacion.value = null
     }
 }

@@ -29,6 +29,13 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
     )
     val usuarioActual: StateFlow<Usuario?> = _usuarioActual
 
+    private val _fotoPerfilBase64 = MutableStateFlow<String?>(
+        if (sessionManager.obtenerIsLoggedIn()) {
+            sessionManager.obtenerFotoPerfil(sessionManager.obtenerRut())
+        } else null
+    )
+    val fotoPerfilBase64: StateFlow<String?> = _fotoPerfilBase64
+
     private val _sesionIniciada = MutableStateFlow(sessionManager.obtenerIsLoggedIn())
     val sesionIniciada: StateFlow<Boolean> = _sesionIniciada
 
@@ -62,7 +69,8 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
                 if (response.isSuccessful && userBody != null && userBody.id != null) {
                     _usuarioActual.value = userBody
                     _sesionIniciada.value = true
-                    sessionManager.guardarSesion(true, userBody.nombre_usuario, userBody.rut, null)
+                    sessionManager.guardarSesion(true, userBody.nombre_usuario, userBody.rut)
+                    _fotoPerfilBase64.value = sessionManager.obtenerFotoPerfil(userBody.rut)
                     cargarDocumentos()
                     onSuccess()
                 } else {
@@ -91,16 +99,16 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
                 if (response.isSuccessful) {
                     val usuarioLogueado = response.body()
 
-                    // Solo permite ingresar si Xano devolvió un registro real con id y rut válidos
                     if (usuarioLogueado != null && usuarioLogueado.id != null && usuarioLogueado.rut.isNotBlank()) {
                         _usuarioActual.value = usuarioLogueado
                         _sesionIniciada.value = true
                         sessionManager.guardarSesion(
                             isLoggedIn = true,
-                            nombreUsuario = usuarioLogueado.nombre_usuario,
-                            rut = usuarioLogueado.rut,
-                            fotoBase64 = null
+                            nombre_usuario = usuarioLogueado.nombre_usuario,
+                            rut = usuarioLogueado.rut
                         )
+                        // Recupera la foto persistente asociada al RUT que inició sesión
+                        _fotoPerfilBase64.value = sessionManager.obtenerFotoPerfil(usuarioLogueado.rut)
                         cargarDocumentos()
                         onSuccess()
                     } else {
@@ -141,20 +149,19 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun limpiarError() {
-        _mensajeError.value = null
+    fun actualizarFotoPersistente(fotoBase64: String?) {
+        val rutActual = _usuarioActual.value?.rut ?: sessionManager.obtenerRut()
+        if (!rutActual.isNullOrBlank()) {
+            sessionManager.actualizarFotoPerfil(rutActual, fotoBase64)
+            _fotoPerfilBase64.value = fotoBase64
+        }
     }
 
     fun cerrarSesion() {
         sessionManager.cerrarSesion()
         _usuarioActual.value = null
+        _fotoPerfilBase64.value = null
         _sesionIniciada.value = false
         _mensajeError.value = null
     }
-
-    fun actualizarFotoPersistente(fotoBase64: String?) {
-        sessionManager.actualizarFotoPerfil(fotoBase64)
-    }
-
-    fun obtenerFotoPersistente(): String? = sessionManager.obtenerFotoPerfil()
 }

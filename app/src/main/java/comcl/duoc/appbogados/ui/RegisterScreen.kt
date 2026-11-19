@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import comcl.duoc.appbogados.R
 import comcl.duoc.appbogados.viewmodel.FormularioViewModel
@@ -30,6 +31,8 @@ fun RegisterScreen(
     val errorServidor by sesionViewModel.mensajeError.collectAsState()
     val errorValidacion by formularioViewModel.errorValidacion.collectAsState()
 
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -46,7 +49,10 @@ fun RegisterScreen(
                 contentDescription = "Logo Abogado",
                 modifier = Modifier
                     .size(100.dp)
+                    .clip(CircleShape)
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "Registro - AppBogados",
@@ -59,6 +65,7 @@ fun RegisterScreen(
                 value = nombre,
                 onValueChange = { formularioViewModel.nombreUsuarioReg.value = it },
                 label = { Text("Nombre de Usuario") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -68,6 +75,7 @@ fun RegisterScreen(
                 value = rut,
                 onValueChange = { formularioViewModel.rutReg.value = it },
                 label = { Text("RUT (ej: 12345678-9)") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -77,7 +85,17 @@ fun RegisterScreen(
                 value = contrasena,
                 onValueChange = { formularioViewModel.contrasenaReg.value = it },
                 label = { Text("Contraseña") },
-                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
+                visualTransformation = if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                trailingIcon = {
+                    TextButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Text(if (passwordVisible) "Ocultar" else "Ver")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
