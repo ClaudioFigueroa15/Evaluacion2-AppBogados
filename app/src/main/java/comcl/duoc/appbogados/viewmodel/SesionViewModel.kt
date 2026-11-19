@@ -13,10 +13,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class SesionViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = XanoRepository()
-    private val sessionManager = SessionManager(application)
+class SesionViewModel @JvmOverloads constructor(
+    application: Application,
+    private val repository: XanoRepository = XanoRepository(),
+    private val sessionManager: SessionManager = SessionManager(application)
+) : AndroidViewModel(application){
 
     private val _usuarioActual = MutableStateFlow<Usuario?>(
         if (sessionManager.obtenerIsLoggedIn()) {
